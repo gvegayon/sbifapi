@@ -1,0 +1,127 @@
+#Código para obtener Datos desde la API
+
+# Carga de Librerías necesarias
+options(warn = -1)
+require(RJSONIO, quietly=T)
+require(tcltk, quietly=T)
+require(foreign, quietly=T)
+
+# Revisa archivo de configuración
+conf <- NULL # unlist(strsplit(readLines("sbifapi.conf", warn=F), split='\t'))
+if (is.null(conf[2])) {
+	dir <- tk_choose.dir(caption="Seleccione el directorio para descarga de los datos",
+							default=getwd())
+} else {
+	dir <- conf[2]
+}
+stopifnot(!is.na(dir))
+try.r <- try(setwd(dir), silent=T)
+j <- 1
+while (class(try.r) == 'try-error') {
+  cat('\n',j,'Discos no montados, cargando en')
+  for (i in 10:0) {Sys.sleep(1);cat('...',i, sep='')}
+  try.r <- try(setwd(dir), silent=T)
+  j <- j + 1
+}
+
+# Define funcion de descarga
+sbifAPI <- function(
+	t0 = 2000,
+	t1 = gsub("[-][0-9]{2}[-][0-9]{2}$",Sys.Date(),replacement=""),
+	ind = 'uf',
+	APIkey = '724b35d182347cbcc3b2f45b7f3f9888232ec91b',
+	dta = NA
+	) {
+
+	# Arma URL
+	url <- paste('http://api.sbif.cl/api-sbif/recursos/',ind,'/periodo/',
+						t0,'/',
+						ifelse(is.na(t1), t0, t1),
+						'?',
+						'apikey=',APIkey,'&formato=json',
+						sep = '')
+
+	x <- data.frame(fromJSON(url), stringsAsFactors=F)
+
+	# Establece parámetros
+	nobs <- NCOL(x)
+	labl <- rownames(x)
+
+	x <- matrix(t(x),nrow=nobs)
+
+	x <- data.frame(x, stringsAsFactors=F); colnames(x) <- labl
+
+	# transforma variables
+	x$Valor <- as.numeric( # Valores Numéricos
+		sub(pattern=',','.',
+				sub(pattern='.','',x$Valor,fixed=T)
+				)
+		)
+
+	x <- data.frame(
+		x,
+		agno = as.numeric(substr(x$Fecha,start=1,stop=4)),
+		mes = as.numeric(substr(x$Fecha,start=6,stop=7)),
+		dia = as.numeric(substr(x$Fecha,start=9,stop=10))
+		)
+
+	# Verifica si escribe en formato dta
+	if (is.na(dta)) {
+		x
+	}
+	else {
+		require(foreign, quietly=T)
+		write.dta(dataframe=x,file=dta,convert.dates=F)
+	}
+}
+
+still <- 0
+i <- 0
+while (still == 0) {
+	try(uf <- sbifAPI(ind = 'uf', t0 = 1990),silent=T)
+	try(index <- uf$agno * 100 + uf$mes,silent=T)
+	if (!exists('uf')) {
+		i <- i + 1
+		cat('\n',i, "No se puede establecer la conexion, probando en 5s")
+		for (j in 1:5) {Sys.sleep(1);cat("...",5-j, sep = "")};cat('\n')
+	}
+	else {
+    cat('\n',i, "Conexion establecida...")
+		still <- 1
+	}
+}
+
+# Carga de Valores
+uf_ult_dia <- tapply(uf$Valor, index, function(x) {x[NROW(x)]})
+uf_ult_dia <- data.frame(fecha_sp = rownames(uf_ult_dia), uf_ult_dia,
+												 stringsAsFactors=F)
+
+uf_promedio_mensual <- tapply(uf$Valor, index, mean, na.rm=T)
+uf_promedio_mensual <- data.frame(fecha_sp = rownames(uf_promedio_mensual),
+                                  uf_promedio_mensual, stringsAsFactors=F)
+
+uf <- cbind(fecha_sp=index, uf)
+uf <- merge(uf, uf_ult_dia, by = "fecha_sp")
+uf <- merge(uf, uf_promedio_mensual, by = "fecha_sp")
+
+
+
+write.dta(uf, file="uf.dta", convert.factors="numeric")
+cat("\nUF cargada...")
+
+sbifAPI(ind = 'utm',dta='utm.dta')
+cat("\nUTM cargada...")
+
+sbifAPI(ind = 'dolar',dta='dolar.dta', t0 = 1990)
+cat("\nDolar cargado...")
+
+sbifAPI(ind = 'ipc',dta='ipc.dta', t0 = 1990)
+cat("\nIPC cargada...")
+
+sbifAPI(ind = 'euro',dta='euro.dta')
+cat("\nEuro cargado...")
+
+# Mensaje de Salida
+cat("\nArchivos almacenados en", getwd(),'\n')
+for (j in 1:10) {Sys.sleep(1);cat(".",sep = "")}
+

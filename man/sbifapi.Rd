@@ -4,8 +4,7 @@
 \alias{sbifapi}
 \title{Generic function for the GET method of the API}
 \usage{
-sbifapi(what = "dolar", frame = "year",
-  apikey = "724b35d182347cbcc3b2f45b7f3f9888232ec91b", formato = "JSON",
+sbifapi(what = "dolar", frame = "year", apikey, formato = "JSON",
   callback = NULL, Year = lubridate::year(Sys.Date()), Month = NULL,
   Day = NULL, retry = 1)
 }

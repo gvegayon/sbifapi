@@ -1,0 +1,10 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+R/sbifapi\.r
+^\.travis\.yml$
+^README\.Rmd$
+^README-.*\.png$
+.*\.dta$
+^credentials\.r$
+.*\.tar\.gz$
+^appveyor\.yml$

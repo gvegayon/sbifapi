@@ -1,11 +1,14 @@
 Package: sbifapi
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Client for the SBIF API
+Description: This package serves as a client for accessing SBIF (Superintendencia
+  de Banco e Instituciones Financieras, Chile) API. The API provides access to
+  monetary values such as USD, UTM and UF in terms of Chilean pesos.
 Version: 0.1
 Date: 2015-09-10
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Authors@R: person("George", "Vega Yon", email="g.vegayon@gmail.com", role=c("aut", "cre"))
+License: MIT + file LICENSE
 LazyData: TRUE
-Imports: httr
+Imports:
+    httr, lubridate
+RoxygenNote: 5.0.1

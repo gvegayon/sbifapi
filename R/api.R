@@ -1,10 +1,3 @@
-# library(httr)
-
-#' @importFrom httr GET config
-NULL
-
-#' @importFrom lubridate year ymd
-NULL
 
 #' Returns available indicators
 #'
@@ -18,7 +11,7 @@ sbif_indicators <- function() {
 
 #' Generic function for the GET method of the API
 #'
-#' @param what Object to retrieve (see \link{Details})
+#' @param what Object to retrieve (see Details)
 #' @param frame For the particular date, before that date, or after that date
 #' @param apikey API key
 #' @param formato Format of the returning data, can be either JSON or XML
@@ -37,8 +30,16 @@ sbif_indicators <- function() {
 #'  anteriores
 #'  \item
 #' }
+#' @references
+#' SBIF API Documentation \url{http://api.sbif.cl/index.html}
 #' @export
-sbifapi <- function(what='dolar', frame='year',
+#' @examples
+#' \dontrun{
+#' # Retrieving dollar info for 2015 and 2016
+#' dollar2015 <- sbifapi("dolar", Year=2015, apikey="mykey")
+#' dollar2016 <- sbifapi("dolar", Year=2016, apikey="mykey")
+#' }
+sbifapi <- function(what='dolar', frame='fixed',
                     apikey, formato='JSON', callback=NULL,
                     Year=lubridate::year(Sys.Date()),
                     Month=NULL,
@@ -66,24 +67,24 @@ sbifapi <- function(what='dolar', frame='year',
   req   <- structure(NULL, class='error')
   retry <- retry + 1
   while (inherits(req, 'error') & retry) {
-    req <- tryCatch(GET(uri, query=list(apikey=apikey, formato=formato)),
+    req <- tryCatch(httr::GET(uri, query=list(apikey=apikey, formato=formato)),
                     error=function(e) e)
 
     retry <- retry - 1
   }
 
-  status <- status_code(req)
+  status <- httr::status_code(req)
   if (status != 200) {
     # print(req)
     warning('Problemas en la consulta. Revise el error en http://api.sbif.cl/api-codigos-de-error.html')
-    stop_for_status(req)
+    httr::stop_for_status(req)
   }
 
-  req <- unlist(content(req, type='application/json'), FALSE)
+  req <- unlist(httr::content(req, type='application/json'), FALSE)
 
   output <- data.frame(
     Valor = as.numeric(gsub(',','.',gsub('\\.','', sapply(req, '[[', 'Valor')))),
-    Fecha = as.Date(ymd(sapply(req, '[[', 'Fecha'))),
+    Fecha = as.Date(lubridate::ymd(sapply(req, '[[', 'Fecha'))),
     stringsAsFactors = FALSE
     )
 
